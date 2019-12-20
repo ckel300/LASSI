@@ -37,6 +37,7 @@ void Memory_Initialization_AtStart(void) {
 }
 
 void Global_Array_Initialization_AtStart(void) {
+    printf("MADE IT TO THIS GREAT SPOT");
     int i, j, k, xTemp, yTemp, zTemp;//Indecies
     int myCubeLen = 3;
 
@@ -170,10 +171,11 @@ void Initial_Conditions_Simple(void) {
     */
 
     int idx, idy;//Just internal counters for various things.
-    int i, j, k;//Iterators for loops
+    int i, j, k, l;//Iterators for loops
     int bondPart;//Used to track the bond partner for a particular bead.
     int fB, lB;//Used to track the first and last bead of a particular chain for looping.
     int radUp, radLow;//Used as radii to generate coordinates within a linker-length sphere
+    int x, y, z;
     //Just remember tha lB-1 is the last bead in that chain, but in loops we go <lB.
     int TlCnt = 0;//Counter for trials around an anchor.
     int tmpR[POS_MAX], tmpR2[POS_MAX];//Arrays to store temporary coordinates;
@@ -188,155 +190,283 @@ void Initial_Conditions_Simple(void) {
         tmpR2[j] = tmpR[j];
     }
 
+    int mode = 0;
+    int IDval = 0;
+    radUp = 0;
+    radLow = 0;
+    float currentDistance = 0;
+    float compDistance = 0;
+    int a;
+    int position = 0;
+
+    printf("MADE IT HEREEEEEEEEEE\n");
+    srand(1);
     for (k = 0; k < tot_chains; k++) {
         //This makes reading easier, honestly
+
+        TlCnt = 0;
         fB = chain_info[k][CHAIN_START];
         lB = fB + chain_info[k][CHAIN_LENGTH];
-
-        //Reset the temp_list for each chain, and the iterator!
-        for (i = 0; i < list_it; i++) {//initialize the list where -1 signifies emptiness.
-            temp_list[i] = -1;
-        }
-        list_it = 0;
-
-        for (i = fB; i < lB; i++) {//Going bead-bead in this chain.
-            //Checking if the bead has already been placed.
-            for (idy = 0; idy < list_it; idy++) {
-                if (i == temp_list[idy]) {//This means this bead has already been placed.
-                    goto SproutForth;
-                }
+        if (chain_weight[chain_info[k][CHAIN_TYPE]][0][POS_X] == 99) {
+            printf("MADE IT TO LOOP ONE, YOU GOT CHAIN %d\n", k);
+            //Reset the temp_list for each chain, and the iterator!
+            for (i = 0; i < list_it; i++) {//initialize the list where -1 signifies emptiness.
+                temp_list[i] = -1;
             }
-            //If we have reached here, this bead has not been placed before.
-            idx = 0;
-            bondPart = topo_info[i][idx];//Re-initialize these two.
-            //Let's go through the bonded partners for this bead and see if one can be used as an anchor.
-            while (topo_info[i][idx] != -1 && idx < MAX_BONDS) {//Again, -1 signifies that no bonded bead exists.
-                bondPart = topo_info[i][idx];
-                //Checking if thisBead has been placed already, and can be used as anchor.
+            list_it = 0;
+
+            for (i = fB; i < lB; i++) {//Going bead-bead in this chain.
+                //Checking if the bead has already been placed.
                 for (idy = 0; idy < list_it; idy++) {
-                    if (bondPart == temp_list[idy]) {//Using bondPart as an anchor
-                        goto FoundAnchor;//This is just so we don't keep going over the list needlessly and just pick the first one.
+                    if (i == temp_list[idy]) {//This means this bead has already been placed.
+                        goto SproutForth;
                     }
                 }
-                idx++;
-                //If we got here, this means no bonded partner has already been placed, so no anchor.
-                bondPart = -1;
-            }
+                //If we have reached here, this bead has not been placed before.
+                idx = 0;
+                bondPart = topo_info[i][idx];//Re-initialize these two.
+                //Let's go through the bonded partners for this bead and see if one can be used as an anchor.
+                while (topo_info[i][idx] != -1 && idx < MAX_BONDS) {//Again, -1 signifies that no bonded bead exists.
+                    bondPart = topo_info[i][idx];
+                    //Checking if thisBead has been placed already, and can be used as anchor.
+                    for (idy = 0; idy < list_it; idy++) {
+                        if (bondPart == temp_list[idy]) {//Using bondPart as an anchor
+                            goto FoundAnchor;//This is just so we don't keep going over the list needlessly and just pick the first one.
+                        }
+                    }
+                    idx++;
+                    //If we got here, this means no bonded partner has already been placed, so no anchor.
+                    bondPart = -1;
+                }
 
-            FoundAnchor:
-            if (bondPart != -1) {//We found an anchor.
-                radUp = 2 * linker_len[i][idx] + 1;
-                radLow = linker_len[i][idx];
-                for (j = 0; j < POS_MAX; j++) {//Using thisBead as anchor
-                    tmpR[j] = bead_info[bondPart][j];
-                    tmpR2[j] = tmpR[j];
-                }
-                TlCnt = 0;//Reset this counter.
-                while (naTotLattice[Lat_Ind_FromVec(tmpR2)] != -1 && TlCnt < 500000) {
+                FoundAnchor:
+                if (bondPart != -1) {//We found an anchor.
                     for (j = 0; j < POS_MAX; j++) {
-                        tmpR2[j] = (rand() % radUp) - radLow;
-                        tmpR2[j] = (tmpR[j] + tmpR2[j] + nBoxSize[j]) % nBoxSize[j];
+                        tmpR[j] = bead_info[bondPart][j];
+                        tmpR2[j] = tmpR[j];
                     }
-                    TlCnt++;
-                }
-                if (TlCnt == 500000) {
-                    printf("Not enough space in the lattice. Crashing. Maybe try increasing max trials, "
-                           "or make the box bigger!\t\n");
-                    exit(1);
-                }
-                for (j = 0; j < POS_MAX; j++) {
-                    bead_info[i][j] = tmpR2[j];
-                }//Placing bead
-                naTotLattice[Lat_Ind_FromVec(tmpR2)] = i;//Putting on lattice
-                temp_list[list_it] = i;
-                list_it++;//Remembering in hash list.
+                    TlCnt = 0;
+
+                    while (naTotLattice[Lat_Ind_FromVec(tmpR2)] != -1 && TlCnt < 500000) {
+                        for (j = 0; j < POS_MAX; j++) {
+                            radUp = 2 * (linker_len[i][idx] - Float_To_Int(currentDistance)) + 1;
+                            radLow = linker_len[i][idx] - Float_To_Int(currentDistance);
+                            tmpR2[j] = (rand() % radUp) - radLow;
+                            tmpR2[j] = (tmpR[j] + tmpR2[j] + nBoxSize[j]) % nBoxSize[j];
+                            compDistance = Coordinate_Distance(tmpR2[j], tmpR[j], j);
+                            currentDistance = sqrt(currentDistance*currentDistance + (compDistance*compDistance));
+                        }
+                        TlCnt++;
+                        currentDistance = 0;
+                    }
+                    if (TlCnt == 500000) {
+                        printf("Not enough space in the lattice. Crashing. Maybe try increasing max trials, "
+                               "or make the box bigger!\t\n");
+                        exit(1);
+                    }
+                    for (j = 0; j < POS_MAX; j++) {
+                        bead_info[i][j] = tmpR2[j];
+                    }//Placing bead
+                    naTotLattice[Lat_Ind_FromVec(tmpR2)] = i;//Putting on lattice
+                    temp_list[list_it] = i;
+                    list_it++;//Remembering in hash list.
                 //The bead has been placed around an appropriate anchor.
-            } else {//There was no appropriate anchor. So we can put this bead wherever.
-                for (j = 0; j < POS_MAX; j++) {
-                    tmpR[j] = rand() % nBoxSize[j];
-                }
-                //This usually means this is the first bead in the chain.
-                TlCnt = 0;
-                while (naTotLattice[Lat_Ind_FromVec(tmpR)] != -1 &&
-                       TlCnt < 500000) {//Keep looping till we find an empty lattice site.
-                    TlCnt++;
-                    for (j = 0; j < POS_MAX; j++) {//Generate a random point in the lattice.
+                } else {//There was no appropriate anchor. So we can put this bead wherever.
+                    for (j = 0; j < POS_MAX; j++) {
                         tmpR[j] = rand() % nBoxSize[j];
                     }
-                }
-                if (TlCnt == 500000) {
-                    printf("\n\nNot enough space in the lattice for first bead, bruh. Maybe try increasing max trials, "
-                           "or make the box bigger!\n\n");
-                    exit(1);
-                }
-                //Placing this bead wherever there is space, and using it as anchor.
-                //Also updating the lattice, and temp_list
-                for (j = 0; j < POS_MAX; j++) {
-                    bead_info[i][j] = tmpR[j];
-                }
-                naTotLattice[Lat_Ind_FromVec(tmpR)] = i;//Placing on lattice!
-                temp_list[list_it] = i;
-                list_it++;//Remembering that this bead has been placed.
-            }
-            SproutForth:
-            //Now going over the list of bondParts for i and sprouting them
-            for (j = 0; j < POS_MAX; j++) {//Making the current bead an anchor.
-                tmpR[j] = bead_info[i][j];
-            }
-            idx = 0;//Resets things!
-            bondPart = topo_info[i][idx];//Resets things!
-            while (topo_info[i][idx] != -1 && idx < MAX_BONDS) {//Again, -1 signifies that no bonded bead exists.
-                bondPart = topo_info[i][idx];
-                //If the bead has already been dealt with, move on to next potential bondPartner
-                for (idy = 0; idy < list_it; idy++) {
-                    if (bondPart == temp_list[idy]) {
-                        goto SkipThisPartner;//Just so we don't keep looking further.
+                    //This usually means this is the first bead in the chain.
+                    TlCnt = 0;
+                    while (naTotLattice[Lat_Ind_FromVec(tmpR)] != -1 &&
+                           TlCnt < 500000) {//Keep looping till we find an empty lattice site.
+                        TlCnt++;
+                        for (j = 0; j < POS_MAX; j++) {//Generate a random point in the lattice.
+                            tmpR[j] = rand() % nBoxSize[j];
+                        }
                     }
-                }
-                //Get the radii for placing this bead around bead i
-                radUp = 2 * linker_len[i][idx] + 1;
-                radLow = linker_len[i][idx];
-                //Initializing new vector to be where bead i is.
-                for (j = 0; j < POS_MAX; j++) {
-                    tmpR2[j] = tmpR[j];
-                }
-                TlCnt = 0;//Reset this counter.
-                while (naTotLattice[Lat_Ind_FromVec(tmpR2)] != -1 && TlCnt < 500000) {
+                    if (TlCnt == 500000) {
+                        printf("\n\nNot enough space in the lattice for first bead, bruh. Maybe try increasing max trials, "
+                               "or make the box bigger!\n\n");
+                        exit(1);
+                    }
+                    //Placing this bead wherever there is space, and using it as anchor.
+                    //Also updating the lattice, and temp_list
                     for (j = 0; j < POS_MAX; j++) {
-                        tmpR2[j] = (rand() % radUp) - radLow;
-                        tmpR2[j] = (tmpR[j] + tmpR2[j] + nBoxSize[j]) % nBoxSize[j];
+                        bead_info[i][j] = tmpR[j];
                     }
-                    //printf("%d %d %d\n", tmpR2[0], tmpR2[1], tmpR2[2]);
-                    TlCnt++;
+                    naTotLattice[Lat_Ind_FromVec(tmpR)] = i;//Placing on lattice!
+                    temp_list[list_it] = i;
+                    list_it++;//Remembering that this bead has been placed.
                 }
-                if (TlCnt == 500000) {
-                    printf("\n\nNot enough space in the lattice. Crashing. Maybe try increasing max trials, "
-                           "or make the box bigger!\t %d\t%d %d\n\n", TlCnt, i, naTotLattice[Lat_Ind_FromVec(
-                            tmpR2)]);
-                    exit(1);
+                SproutForth:
+            //Now going over the list of bondParts for i and sprouting them
+                for (j = 0; j < POS_MAX; j++) {//Making the current bead an anchor.
+                    tmpR[j] = bead_info[i][j];
                 }
-                for (j = 0; j < POS_MAX; j++) {//Placing bead
-                    bead_info[bondPart][j] = tmpR2[j];
-                }
+                idx = 0;//Resets things!
+                bondPart = topo_info[i][idx];//Resets things!
+                while (topo_info[i][idx] != -1 && idx < MAX_BONDS) {//Again, -1 signifies that no bonded bead exists.
+                    bondPart = topo_info[i][idx];
+                    //If the bead has already been dealt with, move on to next potential bondPartner
+                    for (idy = 0; idy < list_it; idy++) {
+                        if (bondPart == temp_list[idy]) {
+                            goto SkipThisPartner;//Just so we don't keep looking further.
+                        }
+                    }
+                    //Get the radii for placing this bead around bead i
+                    TlCnt = 0;
+                    while (naTotLattice[Lat_Ind_FromVec(tmpR2)] != -1 && TlCnt < 500000) {
+                        for (j = 0; j < POS_MAX; j++) {
+                            radUp = 2 * (linker_len[i][idx] - Float_To_Int(currentDistance)) + 1;
+                            radLow = (linker_len[i][idx] - Float_To_Int(currentDistance));
+                            //Initializing new vector to be where bead i is.
+                            tmpR2[j] = tmpR[j];
+                            tmpR2[j] = (rand() % radUp) - radLow;
+                            tmpR2[j] = (tmpR[j] + tmpR2[j] + nBoxSize[j]) % nBoxSize[j];
+                            compDistance = Coordinate_Distance(tmpR2[j], tmpR[j], j);
+                            currentDistance = sqrt(currentDistance*currentDistance + (compDistance*compDistance));
+                        }
+                        currentDistance = 0;
+                        TlCnt++;
+                    
+                   }     
+                    
+                        //TlCnt = 0;//Reset this counter.
+                        //while (naTotLattice[Lat_Ind_FromVec(tmpR2)] != -1 && TlCnt < 500000) {
+                         //   for (j = 0; j < POS_MAX; j++) {
+                        //        tmpR2[j] = (rand() % radUp) - radLow;
+                        //        tmpR2[j] = (tmpR[j] + tmpR2[j] + nBoxSize[j]) % nBoxSize[j];
+                        //    }
+                        //printf("%d %d %d\n", tmpR2[0], tmpR2[1], tmpR2[2]);
+                        //    TlCnt++;
+                        //}
+                    if (TlCnt == 500000) {
+                        printf("\n\nNot enough space in the lattice. Crashing. Maybe try increasing max trials, "
+                               "or make the box bigger!\t %d\t%d %d\n\n", TlCnt, i, naTotLattice[Lat_Ind_FromVec(
+                                tmpR2)]);
+                        exit(1);
+                    }
+                    for (j = 0; j < POS_MAX; j++) {//Placing bead
+                        bead_info[bondPart][j] = tmpR2[j];
+                    }
 
-                naTotLattice[Lat_Ind_FromVec(tmpR2)] = bondPart;//Putting on lattice
-                temp_list[list_it] = bondPart;
-                list_it++;//Remembering in hash list.
-                SkipThisPartner:
-                idx++;
-                bondPart = -1;
+                    naTotLattice[Lat_Ind_FromVec(tmpR2)] = bondPart;//Putting on lattice 
+                    temp_list[list_it] = bondPart;
+                    list_it++;//Remembering in hash list.
+                    SkipThisPartner:
+                    idx++;
+                    bondPart = -1;
+                }
+                //Moving on to bead i+1
             }
-            //Moving on to bead i+1
+            //Moving on to the next molecule!
+        } else {
+            printf("MADE IT TO LOOP TWOOOO, YOU GOT CHAIN %d\n", k);
+            TlCnt = 0;
+            if (naTotLattice[Lat_Ind_FromVec(tmpR2)] == -1) {
+                 printf("THE CONDITION IS BAD");
+            } else {
+                 printf("THE CONDITION IS GOOD");
+            }
+            //while (naTotLattice[Lat_Ind_FromVec(tmpR2)] != -1 && TlCnt < 500000) {
+            while (TlCnt < 500000) {
+                for (j = 0; j < POS_MAX; j++) {
+                    a = rand();
+                    printf("random is %d\n", a);
+                    tmpR[j] = a % nBoxSize[j];
+                }
+                printf("tmpr is (%d, %d, %d)\n", tmpR[0], tmpR[1], tmpR[2]);
+                TlCnt++;
+                for (x = -OR_DIM + 1; x < OR_DIM; x++) {
+                    tmpR2[POS_X] = (x + tmpR[POS_X] + nBoxSize[POS_X]) % nBoxSize[POS_X];
+                        for (y = -OR_DIM + 1; y < OR_DIM; y++) {
+                            tmpR2[POS_Y] = (y + tmpR[POS_Y] + nBoxSize[POS_Y]) % nBoxSize[POS_Y];
+                            for (z = -OR_DIM + 1; z < OR_DIM; z++) {
+                                tmpR2[POS_Z] = (z + tmpR[POS_Z] + nBoxSize[POS_Z]) % nBoxSize[POS_Z];
+                                if (naTotLattice[Lat_Ind_FromVec(tmpR2)] != -1) {
+ //                                   if (abs(z) == 2) {
+  //                                      if (abs(y) == 2 || abs(z) == 2) {
+   //                                         mode = 0;
+//                                        } else {
+                                            mode = 1;
+                                        }
+//                                    } else {
+ //                                       mode = 1;
+                                    }
+                                }
+                            }
+                printf("TOTAL COUNT IS %d and mode is %d\n", TlCnt, mode);
+//                        }
+//                    }
+                if (mode == 0) {
+                    break;
+                }
+                mode = 0;
+            }
+
+            if (TlCnt == 500000) {
+                printf("\n\nNot enough space in the lattice for first bead, bruh. Maybe try increasing max trials, "
+                           "or make the box bigger!\n\n");
+                exit(1);
+            }
+            if (mode == 0) {
+                printf("Z");
+                printf("FIRST BEAD IS %d and first is %d\n", fB, lB);
+                position = 0;
+                printf("CHAIN %d IS THIS LONG: %d\n", k, chain_info[k][CHAIN_LENGTH]);
+                printf("COORDINATES FOR THE CENTER ARE (%d, %d, %d)\n", tmpR[0], tmpR[1], tmpR[2]);
+                for (i = fB; i < lB; i++) {
+                    IDval = position % chain_info[k][CHAIN_LENGTH];
+                    printf("IDVAL IS %d\n", IDval);
+                    for (j = 0; j < POS_MAX; j++) {
+                        tmpR2[j] = (chain_weight[chain_info[k][CHAIN_TYPE]][IDval][j] + tmpR[j] + nBoxSize[j]) % nBoxSize[j];
+                        bead_info[i][j] = tmpR2[j];
+                    }
+                    naTotLattice[Lat_Ind_FromVec(tmpR2)] = i;
+
+                    //temp_list[list_it] = i;
+                    //list_it++;
+                    position++;
+                }
+            }
+            printf("AT TMPR2 WE HAVE %d\n", naTotLattice[Lat_Ind_FromVec(tmpR2)]);
+                //PUT SPACE CHECKER; randomly finds a box
+                
         }
-        //Moving on to the next molecule!
+        //Initializing all beads with no physical bonds.
+        for (i = 0; i < tot_beads; i++) {
+            bead_info[i][BEAD_FACE] = -1;
+        }
     }
-    //Initializing all beads with no physical bonds.
-    for (i = 0; i < tot_beads; i++) {
-        bead_info[i][BEAD_FACE] = -1;
+
+    printf("DONE WITH PRIMARY INITILIAIZNG!\n");
+}
+/// Initial_Conditions_FromFile - reads the restart file and sets the initial conditions for the system
+
+int Float_To_Int(float val) {
+    int i;
+    float k;
+    i = (int) val;
+    k = (float) i;
+    if (k - val == 0) {
+        return i;
+    } else {
+        return i+1;
     }
 }
 
-/// Initial_Conditions_FromFile - reads the restart file and sets the initial conditions for the system
+int modulo(int one, int two) {
+    int val;
+    int hold;
+    if (one < 0) {
+        hold = one % two;
+        val = hold + two;
+    } else {
+        val = one % two;
+    }
+    return val;
+}
+
 void Initial_Conditions_FromFile(void) {
     printf("Reading file to generate initial configuration\n");
     char strLine[1000];
@@ -380,6 +510,15 @@ void Initial_Conditions_FromFile(void) {
 
 /// Initial_Conditions_BreakBonds - glorified for loop to break every bond. Is used when a restart file with
 /// thermalization steps.
+
+float Coordinate_Distance(int coordone, int coordtwo, int coord) {
+    int d;
+    d = abs(coordone - coordtwo);
+    d = d > nBoxSize[coord] / 2 ? nBoxSize[coord] - d : d;
+    
+    return d;
+}
+
 void Initial_Conditions_BreakBonds(void) {
     int i;
     for (i = 0; i < tot_beads; i++) {

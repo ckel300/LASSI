@@ -14,7 +14,7 @@
 #define MAX_CHAINTYPES 6
 #define MAX_CHAINS     10000
 #define MAX_CHAINLEN   1000
-#define MAX_BONDS      15
+#define MAX_BONDS      24
 #define MAX_VALENCY    1000
 
 // energy parameters
@@ -55,6 +55,7 @@
 #define POS_Y          1
 #define POS_Z          2
 #define POS_MAX        3
+#define POS_MAX2       4
 
 #define BEAD_CHAINID   3
 #define BEAD_TYPE      4
@@ -67,11 +68,14 @@
 #define CHAININFO_MAX  3
 
 #define MAX_ROTSTATES   27
+#define OR_DIM        4 
+#define DIAG_STRETCH 1.74
 
 typedef int lInt;
 typedef long lLong;
 typedef double lDub;
 typedef long double lLDub;
+typedef float lFloat;
 
 // configurations and structural info
 lInt bead_info[MAX_BEADS][BEADINFO_MAX];
@@ -79,6 +83,8 @@ lInt old_bead[MAX_BEADS][BEADINFO_MAX]; //Redundant copy for MCSteps
 lInt linker_len[MAX_BEADS][MAX_BONDS];//Remember that this one is an INT, not float
 lInt topo_info[MAX_BEADS][MAX_BONDS];
 lInt chain_info[MAX_CHAINS][CHAININFO_MAX];
+lInt chain_weight[MAX_CHAINTYPES][MAX_CHAINLEN][POS_MAX2];
+lFloat bond_lengths[MAX_BONDS];
 
 lInt tot_beads;
 lInt tot_chains;

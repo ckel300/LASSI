@@ -98,6 +98,8 @@ float Dist_BeadToBead(int n1, int n2) {
 int Check_System_Structure(void) {
     int i, j;//Looping variables
     int idx;//Internal iterators for covalent bonds.
+    int idy;
+    idy = 0;
     int tmpR[POS_MAX];//Just a vector to store coordinates
     int bondPart;
     for (i = 0; i < tot_beads; i++) {
@@ -120,18 +122,22 @@ int Check_System_Structure(void) {
         }
         while (topo_info[i][idx] != -1 && idx < MAX_BONDS) {
             bondPart = topo_info[i][idx];
-            if (Dist_BeadToBead(i, bondPart) > 1.74 * linker_len[i][idx]) {
-                printf("Bad beads! %d\t(%d %d %d)\t\tTopo:(%d %d %d)\t\tLinkers:(%.5f\t%.5f\t%.5f)\n", i,
+            if (Dist_BeadToBead(i, bondPart) > DIAG_STRETCH * bond_lengths[linker_len[i][idx]]) {
+                printf("Bad beads! %d\t(%d %d %d)\t\tTopo:(%d %d %d %d %d %d)\t\tLinkers:(%.5f\t%.5f\t%.5f\t%.5f\t%.5f\t%.5f)\n", i,
                        bead_info[i][0], bead_info[i][1], bead_info[i][2],
-                       topo_info[i][0], topo_info[i][1], topo_info[i][2],
-                       (float) linker_len[i][0], (float) linker_len[i][1], (float) linker_len[i][2]);
+                       topo_info[i][0], topo_info[i][1], topo_info[i][2], topo_info[i][3], topo_info[i][4], topo_info[i][5],
+                       bond_lengths[linker_len[i][0]], bond_lengths[linker_len[i][1]], bond_lengths[linker_len[i][2]], bond_lengths[linker_len[i][3]], bond_lengths[linker_len[i][4]], bond_lengths[linker_len[i][5]]);
                 printf("\t\t\t\t\t-------------------->\t\t%f\tSHOULD BE\t%f\n", Dist_BeadToBead(i, bondPart),
-                       1.74 * (float) linker_len[i][idx]);
+                       DIAG_STRETCH * bond_lengths[linker_len[i][idx]]);
                 printf("Bad beads! %d\t(%d %d %d)\t\tTopo:(%d %d %d)\t\tLinkers:(%.5f\t%.5f\t%.5f)\n\n", bondPart,
                        bead_info[bondPart][0], bead_info[bondPart][1], bead_info[bondPart][2],
                        topo_info[bondPart][0], topo_info[bondPart][1], topo_info[bondPart][2],
-                       (float) linker_len[bondPart][0], (float) linker_len[bondPart][1],
-                       (float) linker_len[bondPart][2]);
+                       bond_lengths[linker_len[bondPart][0]], bond_lengths[linker_len[bondPart][1]],
+                       bond_lengths[linker_len[bondPart][2]]);
+                while (idy < MAX_BONDS || topo_info[i][idy] == -1) {
+                    printf("COORDINATES OF %d are (%d, %d %d)\n", topo_info[i][idy], bead_info[topo_info[i][idy]][0], bead_info[topo_info[i][idy]][1], bead_info[topo_info[i][idy]][2]);
+                    idy++;
+                }
                 return i + 1;
             }
             idx++;
@@ -151,7 +157,7 @@ int Check_System_Structure(void) {
                        fEnergy[bead_info[i][BEAD_TYPE]][bead_info[bead_info[i][BEAD_FACE]][BEAD_TYPE]][E_SC_SC]);
                 return i + 1;
             }
-            if (Dist_BeadToBead(i, bead_info[i][BEAD_FACE]) > 1.74) {
+            if (Dist_BeadToBead(i, bead_info[i][BEAD_FACE]) > DIAG_STRETCH) {
                 printf("Bad bond! Distance is wrong\n\t%d %d %d\n Distance is %f. Crashing.\n", i,
                        bead_info[i][BEAD_FACE], bead_info[bead_info[i][BEAD_FACE]][BEAD_FACE],
                        Dist_BeadToBead(i, bead_info[i][BEAD_FACE]));
@@ -400,7 +406,7 @@ int Check_LinkerConstraint(int beadID, int *tmpR) {
     bondPartner = topo_info[beadID][idx];//Initializing the two.
     while (idx < MAX_BONDS && topo_info[beadID][idx] != -1) {//Keep going till we run out of partners
         bondPartner = topo_info[beadID][idx];
-        if (Dist_PointToPoint(bead_info[bondPartner], tmpR) > 1.74 * (float) linker_len[beadID][idx]) {
+        if (Dist_PointToPoint(bead_info[bondPartner], tmpR) > DIAG_STRETCH * bond_lengths[linker_len[beadID][idx]]) {
             return 0;//This means that we have broken one of the linkers.
         }
         idx++;
@@ -434,7 +440,7 @@ int Check_MTLinkerConstraint(int beadID, int (*tmpR)[POS_MAX]) {
         idx = 0;
         bPart = topo_info[curID][idx];
         while (bPart != -1 && idx < MAX_BONDS) {
-            if (Dist_BeadToBead(curID, bPart) > 1.74 * (float) linker_len[curID][idx]) {
+            if (Dist_BeadToBead(curID, bPart) > DIAG_STRETCH * bond_lengths[linker_len[curID][idx]]) {
                 canI = 0;
                 break;
             }

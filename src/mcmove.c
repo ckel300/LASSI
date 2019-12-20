@@ -26,22 +26,26 @@ int MC_Step(float fMCTemp) {
         case MV_TRANS:
             i = rand() % tot_chains; //Pick random chain
             nAccept = Move_Trans(i, fMCTemp);
+            //printf("RANDOM CHAIN IS %d, accept? %d\n", i, nAccept);
             break;
 
             //Cluster translation
         case MV_CLSTR:
             nAccept = Move_Clus(fMCTemp);
+            //printf("MOVE CLUSTER, accept? %d\n", nAccept);
             break;
 
             //Cluster translation iff ClusSize <= 5
         case MV_SMCLSTR:
             i = rand() % tot_chains;//Pick a random chain
             nAccept = Move_SmallClus(i, fMCTemp);
+            //printf("RANDOM CHAIN IS %d, accept? %d\n", i, nAccept);
             break;
 
             //Change Rotational State
         case MV_STROT:
             i = rand() % tot_beads;
+            //printf("RANDOM BEAD IS %d, accept? %d\n", i, nAccept);
             nAccept = Move_Rot(i, fMCTemp);
             break;
 
@@ -49,46 +53,54 @@ int MC_Step(float fMCTemp) {
         case MV_LOCAL:
             i = rand() % tot_beads;
             nAccept = Move_Local(i, fMCTemp);
+            //printf("RANDOM BEAD IS %d, accept? %d\n", i, nAccept);
             break;
 
             //Slithering Snake
         case MV_SNAKE:
             i = rand() % tot_chains;
             nAccept = Move_Snake(i, fMCTemp);
+            //printf("RANDOM CHAIN IS %d, accept? %d\n", i, nAccept);
             break;
 
             //Double Pivot
         case MV_DBPVT:
             i = rand() % tot_beads;//Pick a random bead
             nAccept = Move_DbPvt(i);
+            //printf("RANDOM BEAD IS %d, accept? %d\n", i, nAccept);
             break;
 
             //Co-Local
         case MV_COLOCAL:
             i = rand() % tot_beads;//Pick a random bead
             nAccept = Move_CoLocal(i, fMCTemp);
+            //printf("RANDOM BEAD IS %d, accept? %d\n", i, nAccept);
             break;
 
             //Shake Move
         case MV_MTLOCAL:
             i = rand() % tot_beads;
             nAccept = Move_MultiLocal(i, fMCTemp);
+            //printf("RANDOM BEAD IS %d, accept? %d\n", i, nAccept);
             break;
 
             //Pivot
         case MV_PIVOT:
             i = rand() % tot_chains;
             nAccept = Move_Pivot(i, fMCTemp);
+            //printf("RANDOM CHAIN IS %d, accept? %d\n", i, nAccept);
             break;
 
             //Branched Rotation
         case MV_BRROT:
             i = rand() % tot_chains;
             nAccept = Move_BranchedRot(i, fMCTemp);
+            //printf("RANDOM CHAIN IS %d, accept? %d\n", i, nAccept);
             break;
 
         default:
             nAccept = 0;
+            //printf("DEFAULT\n");
             break;
     }
 
@@ -317,7 +329,7 @@ int Move_Local(int beadID, float MyTemp) {//Performs a local translation MC-move
             yTemp = OP_PickRotState(FWWeight);
 
             if (yTemp != -1) {//There is a bead at this position in the rot_trial, so let's add the energy.
-                resj = bead_info[yTemp][BEAD_TYPE];
+                resj = bead_info[yTemp][BEAD_TYPE]; 
                 newEn = fEnergy[resi][resj][E_SC_SC];
             }
         } else {//These beads have no rotational states.
@@ -812,7 +824,7 @@ int Move_DbPvt(int beadID) {//Performs a double-pivot move.
     int PType = chain_info[PChainID][CHAIN_TYPE];//Type of chain.
     int PStart = chain_info[PChainID][CHAIN_START];//Start of this chain.
     int PEnd = PStart + chain_info[PChainID][CHAIN_LENGTH];//LastBead+1 for this chain.
-    if (nChainTypeIsLinear[PType] == 0) {
+    if (nChainTypeIsLinear[PType] != 1) {
         //Reject the move because the chain is not linear.
         return bAccept;
     }
@@ -850,8 +862,8 @@ int Move_DbPvt(int beadID) {//Performs a double-pivot move.
                             //NOW we can see if there is room to make bridges
                             //Remember that linker_len[beadID][0] is the linker Dist_BeadToBead for beadID-1,
                             //and linker_len[beadID][1] is the linker Dist_BeadToBead for beadID+1
-                            if (Dist_BeadToBead(beadID, thisbead) < 1.74 * linker_len[beadID][1] &&
-                                Dist_BeadToBead(beadID + 1, thisbead - 1) < 1.74 * linker_len[thisbead -
+                            if (Dist_BeadToBead(beadID, thisbead) < DIAG_STRETCH * linker_len[beadID][1] &&
+                                Dist_BeadToBead(beadID + 1, thisbead - 1) < DIAG_STRETCH * linker_len[thisbead -
                                                                                               1][1]) {//The linker lengths are correct to change connectivity
                                 candList[nListLen] = thisbead;//Storing which bead it is
                                 nListLen++;//Onto the next bead
@@ -899,8 +911,8 @@ int Move_DbPvt(int beadID) {//Performs a double-pivot move.
                             //NOW we can see if there is room to make bridges
                             //Remember that linker_len[thisbead][0] is the linker Dist_BeadToBead for thisbead-1,
                             //and linker_len[thisbead][1] is the linker Dist_BeadToBead for thisbead+1
-                            if (Dist_BeadToBead(thisbead - 1, otherbead) < 1.74 * linker_len[thisbead - 1][1] &&
-                                Dist_BeadToBead(thisbead, otherbead - 1) < 1.74 * linker_len[otherbead -
+                            if (Dist_BeadToBead(thisbead - 1, otherbead) < DIAG_STRETCH * linker_len[thisbead - 1][1] &&
+                                Dist_BeadToBead(thisbead, otherbead - 1) < DIAG_STRETCH * linker_len[otherbead -
                                                                                              1][1]) {//The linker lengths are correct to change connectivity
                                 nListLen_back++;//Onto the next guy
                                 if (nListLen_back ==
@@ -1235,7 +1247,7 @@ int Move_Pivot(int chainID, float MyTemp) {
 
     //Randomly select a bead that is neither the first nor last
     int anchorBead = chainLength - 2;
-    anchorBead = 2 + (rand() % anchorBead);
+    anchorBead = 1 + (rand() % anchorBead);//FIXED
 
     int PivotDir; //-1 Means backwards, +1 means forwards. Always Pivot the smaller portion
     PivotDir = anchorBead > chainLength / 2 ? 1 : -1;
@@ -1402,18 +1414,27 @@ int Move_BranchedRot(int chainID, float MyTemp) {
       Set the first bead as anchorBead, and perform a symmetry operation on the beads after the anchorBead (the whole molecule). Note that if the molecule is linear, the move is outright rejected. Again, it is assumed that the first bead in that molecule is the 'node'.
       */
     int bAccept = 0;
-    //Reject if the molecule is linear
-    if (nChainTypeIsLinear[chain_info[chainID][CHAIN_TYPE]] == 1) {
-        bAccept = 0;
-        return bAccept;
-    }
-    int firstB, lastB;
+    int chainLength = chain_info[chainID][CHAIN_LENGTH]; 
+    //Reject if the molecule is linear //IS THIS NECESSARY??
+//    if (nChainTypeIsLinear[chain_info[chainID][CHAIN_TYPE]] == 1) {
+//        bAccept = 0;
+//        return bAccept;
+    
+    int firstB, lastB, i, j;
+    firstB = 0;
+    float weight;
     //Get the beadID's for the first and last bead
     firstB = chain_info[chainID][CHAIN_START];
     lastB = firstB + chain_info[chainID][CHAIN_LENGTH];
     //Randomly select a bead
     int anchorBead = firstB;
-    anchorBead = firstB + anchorBead;
+    weight = (float) rand() / (float) RAND_MAX;
+    for (i = 0; i < MAX_CHAINLEN; i++) {
+        if (weight < (float) chain_weight[chain_info[chainID][CHAIN_TYPE]][i][POS_MAX]) {
+            anchorBead = firstB + i;
+        }
+    }
+    //anchorBead = anchorBead + (rand() % chainLength);
 
     //Randomly selecting a symmetry operation
     int PivotM;
@@ -1424,7 +1445,6 @@ int Move_BranchedRot(int chainID, float MyTemp) {
         return bAccept;
     }
 
-    int i, j;
     int xTemp, yTemp;
     int anchorPos[POS_MAX];
     for (j = 0; j < POS_MAX; j++) {
@@ -1434,7 +1454,7 @@ int Move_BranchedRot(int chainID, float MyTemp) {
     xTemp = 0;
     yTemp = 0;
     while (xTemp < nMCMaxTrials && yTemp == 0) {
-        for (i = anchorBead + 1; i < lastB; i++) {
+        for (i = firstB; i < lastB; i++) {
             OP_Rotation(PivotM, i, anchorPos);
             yTemp = Check_MoveBeadTo(naTempR);
             if (yTemp == 0) {
@@ -1537,9 +1557,6 @@ int Move_BranchedRot(int chainID, float MyTemp) {
         return bAccept;
     }
 }
-
-// All the _Equil variants of the moves are spatially the same as their non _Equil variants.
-// The only difference is that the aniso-tropic interaction is ignored, and thus no bias is applied.
 
 int Move_Local_Equil(int beadID, float MyTemp) {//Performs a local translation MC-move on beadID
 
@@ -2021,18 +2038,25 @@ int Move_BranchedRot_Equil(int chainID, float MyTemp) {
       */
     int bAccept = 0;
     //Reject if the molecule is linear
-    if (nChainTypeIsLinear[chain_info[chainID][CHAIN_TYPE]] == 1) {
-        bAccept = 0;
-        return bAccept;
-    }
-    int firstB, lastB;
+//    if (nChainTypeIsLinear[chain_info[chainID][CHAIN_TYPE]] == 1) {
+//       bAccept = 0;
+//       return bAccept;
+    
+    int firstB, lastB, i,j;
     //Get the beadID's for the first and last bead
     firstB = chain_info[chainID][CHAIN_START];
     lastB = firstB + chain_info[chainID][CHAIN_LENGTH];
 
     //Randomly select a bead
+    float weight;
     int anchorBead = firstB;
-    anchorBead = firstB + anchorBead;
+    weight = rand() % RAND_MAX;
+    for (i = 0; i < MAX_CHAINLEN; i++) {
+        if (weight < (float) chain_weight[chain_info[chainID][CHAIN_TYPE]][i][POS_MAX]) {
+            anchorBead = firstB + i;
+        }
+    }
+    //anchorBead =
 
     //Randomly selecting a symmetry operation
     int PivotM;
@@ -2043,7 +2067,6 @@ int Move_BranchedRot_Equil(int chainID, float MyTemp) {
         return bAccept;
     }
 
-    int i, j;
     int xTemp, yTemp;
     int anchorPos[POS_MAX];
     for (j = 0; j < POS_MAX; j++) {
