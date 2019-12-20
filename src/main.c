@@ -9,11 +9,15 @@
 
 int main(int argc, char *argv[]) {
     //Read in the system commands
+    int idy;
+    idy = 0;
+    int i;
+    i = 0;
     char keyfile[100];
     if (argc == 3 && strcmp(argv[1], "-k") == 0) {
         strcpy(keyfile, argv[2]);
     } else {
-        strcpy(keyfile, "param.key");
+        strcpy(keyfile, "param.txt");
     }
     //Text formatting helpers.
     char lBrace[] = "<======      ";
@@ -36,10 +40,19 @@ int main(int argc, char *argv[]) {
 
     //Allocating memory and initializing all global arrays.
     Memory_Initialization_AtStart();
+    printf("MADE IT TO THIS SPOT");
     Global_Array_Initialization_AtStart();
+    printf("MADE IT HERE");
+    for (i = 0; i < MAX_BONDS; i++) {
+        bond_lengths[i] = 0;
+    }
+    bond_lengths[1] = 0.58;
+    bond_lengths[2] = 2.0;
+    bond_lengths[3] = 3.0;
 
     //Reading in the structure file, and figuring out initial conditions.
     if (bReadConf == 0) {
+        printf("Initializing For real");
         Initial_Conditions_Simple();
     } else if (bReadConf == 1) {
         Initial_Conditions_FromFile();
@@ -89,7 +102,8 @@ int main(int argc, char *argv[]) {
     printf("----------------------------\n\n");
 /*
 The system has thermalized!
-*/
+*/  
+    printf("%f\n", fMCFreq[0]);
     int run_cycle;
     //Going through the MC cycles.
     for (run_cycle = 0; run_cycle < nTot_CycleNum; run_cycle++) {

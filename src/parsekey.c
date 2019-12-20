@@ -30,7 +30,7 @@ int Parse_Keyfile(char *filename) {
     int nErr = 0; // error code
 
     for (i = 0; i < MAX_MV; i++) {
-        fMCFreq[i] = 0.0; // initialization; to be normalized
+        fMCFreq[i] = 0.0; // initialization; to be normalized //0 is initialized to 0.0
     }
     nThermalization_Mode = 0;
     Temp_Mode = -1;
@@ -90,27 +90,27 @@ int Parse_Keyfile(char *filename) {
             } else if (strcmp(strKeyword, "MC_MAX_TRIALS") == 0) {
                 sscanf(strLine, "%*s %d", &nMCMaxTrials);
             } else if (strcmp(strKeyword, "MV_TRANS_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_TRANS]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_TRANS]); //6
             } else if (strcmp(strKeyword, "MV_CLSTR_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_CLSTR]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_CLSTR]); //8
             } else if (strcmp(strKeyword, "MV_SMCLSTR_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_SMCLSTR]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_SMCLSTR]); //7
             } else if (strcmp(strKeyword, "MV_STROT_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_STROT]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_STROT]); //1
             } else if (strcmp(strKeyword, "MV_LOCAL_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_LOCAL]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_LOCAL]); //2
             } else if (strcmp(strKeyword, "MV_SNAKE_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_SNAKE]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_SNAKE]); //5
             } else if (strcmp(strKeyword, "MV_DBPVT_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_DBPVT]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_DBPVT]); //11
             } else if (strcmp(strKeyword, "MV_COLOCAL_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_COLOCAL]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_COLOCAL]); //3
             } else if (strcmp(strKeyword, "MV_MTLOCAL_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_MTLOCAL]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_MTLOCAL]); //4
             } else if (strcmp(strKeyword, "MV_PIVOT_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_PIVOT]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_PIVOT]); //9
             } else if (strcmp(strKeyword, "MV_BRROT_FREQ") == 0) {
-                sscanf(strLine, "%*s %f", &fMCFreq[MV_BRROT]);
+                sscanf(strLine, "%*s %f", &fMCFreq[MV_BRROT]); //10
             } else if (strcmp(strKeyword, "RESTART_FILE") == 0) {
                 sscanf(strLine, "%*s %s", strRestartFile);
             } else if (strcmp(strKeyword, "STRUCT_FILETYPE") == 0) {
@@ -145,6 +145,7 @@ int Parse_Keyfile(char *filename) {
 
 
     fclose(infile);
+
 
     float freq_tot = 0.0;
     for (i = MV_NULL + 1; i < MAX_MV; i++) {
@@ -275,6 +276,8 @@ int Parse_EnergyFile(char *strEnFile) {
                 break;
             } else {
                 nEntry = str2farr(strLine, fTemp);
+                printf("nEntry %d\n", nEntry);
+                printf("nBeadTypes %d\n", nBeadTypes);
 
                 if (nEntry != nBeadTypes) {
                     if (nEntry == 1) {
@@ -382,6 +385,7 @@ void Parse_StructureFile(char *filename) {
     char strKeyword[1000];//Used to convert strLine into specific keywords.
     int curID;//Used to track the current beadID
     int curType, curLinker, curPartner;//Used to track current bead-type,linker-length(s),bond-partner.
+    int xval, yval, zval;
     int nCopies;//Used to store how many copies to make.
     int nChainStart;//Tracking which beadID each chain starts from.
     int i, j, k;//Just some iterators for looping
@@ -405,9 +409,18 @@ void Parse_StructureFile(char *filename) {
         }
     }
 
+    for (i = 0; i < MAX_CHAINTYPES; i++) {
+        for (j = 0; j < MAX_CHAINLEN; j++) {
+            for (k = 0; k < POS_MAX2; k++) {
+                chain_weight[i][j][POS_MAX] = 0;
+            }
+        }
+    }
+
     //Initialization of the counters and iterators
     nCursor = -1;
     nCursor2 = -1;
+    int nCursorHold = 0;
     nChainID = -1;
     nChainType = -1;
     nFlag = -1;
@@ -415,8 +428,16 @@ void Parse_StructureFile(char *filename) {
     tot_beads = 0;
     tot_chains = 0;
     nBEADS = 0;
+    int beadLoc = 0;
+    int beadLocHold = 0;
     nChainStart = 0;
     nCopies = 0;
+    int Partition = 0;
+    xval = 0;
+    yval = 0;
+    zval = 0;
+    int curIDsave = 0;
+
     while (fgets(strLine, sizeof(strLine), inFile) != NULL && nFlag == -1) {
         //Keep reading the file until it ends or it's incorrectly formatted.
 
@@ -440,31 +461,53 @@ void Parse_StructureFile(char *filename) {
 
         if (nFlag == 1) {//This signifies that a new molecule has started
             //It's assumed that the next line contains the number of copies for this molecule.
+            Partition = 0;
+            beadLoc = 0;
             nChainType++;
             nChainTypeIsLinear[nChainType] = 1;//Assume all chains are linear to begin with.
             nChainStart += nBEADS;
+            printf("CHAIN START NOW IS %d\n", nChainStart);
             nChainID++;
             tot_chains++;
             nBEADS = 0;
             fgets(strLine, sizeof(strLine), inFile);//Reading the next line, which has nMOLS
             sscanf(strLine, "%d", &nCopies);//Remembering how many copies top make.
+            printf("NUMBER OF COPIES IS %d\n", nCopies);
             while (fgets(strLine, sizeof(strLine), inFile) != NULL && nFlag == 1) {
                 sscanf(strLine, "%s", strKeyword);//Just reading as a string
                 if (strcmp(strKeyword, "}END") == 0) {//End of this molecule
                     nFlag = -1;
+                    printf("CUR ID IS %d\n", curIDsave);
                     break;
                 }
-                sscanf(strLine, "%d %d %d %d", &curID, &curType, &curLinker, &curPartner);
+                sscanf(strLine, "%d %d %d %d %d %d %d", &curID, &curType, &curLinker, &curPartner, &xval, &yval, &zval);
+                curIDsave = curID;
                 curID += nChainStart;//Accounting for previously defined beads
+                if (curIDsave == 0) {
+                   printf("SO THE VAL HERE IS %d\n", bead_info[curID][BEAD_TYPE]);
+                   printf("THE ID HERE IS %d\n", curID);
+                }
+                beadLocHold = beadLoc;
                 if (bead_info[curID][BEAD_TYPE] ==
                     -1) {//This is to make sure that each bead is counted once only even if it has many bonds.
+                    if (curIDsave == 0) {
+                        printf("FOUND ONE");
+                    }
                     tot_beads++;
                     nBEADS++;
+                    printf("TOTAL BEADS NOW IS %d\n and currentid is %d\n", tot_beads,curIDsave);
                     bead_info[curID][BEAD_TYPE] = curType;
                     bead_info[curID][BEAD_CHAINID] = nChainID;
+                    if (curID != 0) {
+                        nCursorHold = nCursor;
+                    }
                     nCursor = 0;//This is a counter for number of bonds, which should reset when you have a 'new' bead.
-                }
 
+                    chain_weight[nChainType][beadLoc][POS_X] = xval;
+                    chain_weight[nChainType][beadLoc][POS_Y] = yval;
+                    chain_weight[nChainType][beadLoc][POS_Z] = zval;
+                    beadLoc++;
+                }
                 if (curPartner != -1) {//This bead has a bonded partner
                     if (nCursor >
                         1) {//This signifies that the chain is not linear because a bead has more than two bonds because indecies start at 0
@@ -476,14 +519,26 @@ void Parse_StructureFile(char *filename) {
                     nCursor++;
 
                 }
+                if (beadLocHold != beadLoc) {  //this checks to see if we are still looking at the same bead here; if not, we use the vals of the previous beads bond number and its location in the chain; could have used "nBEADS" but wanted to be safe for now
+                    chain_weight[nChainType][beadLocHold][POS_MAX] = nCursorHold;
+                }
 
+            }
+            for (i = 0; i < nBEADS; i++) {
+                Partition += chain_weight[nChainType][i][POS_MAX]; //calculate the partition function
+            }
+            for (i = 0; i < nBEADS; i++) {
+                chain_weight[nChainType][i][POS_MAX] /= Partition; //calculate normalized weights
+            }
+            for (i = 1; i < nBEADS; i++) {
+                chain_weight[nChainType][i][POS_MAX] += chain_weight[nChainType][i-1][POS_MAX]; //calculate cumulative
             }
             chain_info[nChainID][CHAIN_START] = nChainStart;
             chain_info[nChainID][CHAIN_LENGTH] = nBEADS;
             chain_info[nChainID][CHAIN_TYPE] = nChainType;
             //We just fully store the first chain 'manually'. Now we just copy the chain nCopies times.
-
             for (k = 1; k < nCopies; k++) {//Now we just copy this molecule nMOL-1 times
+                printf("doing it\n");
                 nChainStart += nBEADS;//This accounts for chain lengths.
                 nChainID++;//Going to the next chainID
                 tot_chains++;//Add a chain
@@ -519,3 +574,4 @@ void Parse_StructureFile(char *filename) {
     fclose(inFile);
 
 }
+

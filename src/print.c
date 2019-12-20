@@ -362,7 +362,7 @@ void Write_TopFile(char *filename) {
     for (i = 0; i < tot_beads; i++) {
         for (j = 0; j < MAX_BONDS; j++) {
             if (topo_info[i][j] != -1) {//There is a bond between i and topo_info[i][j]
-                fprintf(fp, "%d %d %d %d\n", k, linker_len[i][j] / (int) fLinkerLength, i, topo_info[i][j]);
+                fprintf(fp, "%d %f %d %d\n", k, linker_len[i][j] / (float) fLinkerLength, i, topo_info[i][j]);
                 k++;
             }
         }

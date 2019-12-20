@@ -9,7 +9,13 @@ void Reset_Global_Arrays(void);
 
 void Initial_Conditions_Simple(void);
 
+int Float_To_Int(float val);
+
+int modulo(int one, int two);
+
 void Initial_Conditions_FromFile(void);
+
+float Coordinate_Distance(int coordone, int coordtwo, int coord);
 
 void Initial_Conditions_BreakBonds(void);
 
